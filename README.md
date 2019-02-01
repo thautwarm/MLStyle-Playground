@@ -43,7 +43,7 @@ Active Patterns can help you with making custom patterns.
 red = RGB(220, 20, 60)
 @match red begin
     Green(which_green) => throw("red is taken as $which_green")
-    Red(concrete_name) => concrete_name
+    Red(which_red) => which_red
     _ => throw("red is not recognized!")
 end
 
