@@ -3,6 +3,35 @@
 
 Check the implementations of some popular constructs from other languages.
 
+## MQuery
+
+The codes of [Write You A Query Language](https://github.com/thautwarm/MLStyle.jl/blob/tutorial-MQuery/docs/src/tutorials/query-lang.md).
+
+Not like other similar implementations, `MQuery.jl` just depends on fewer packages like `DataStructures.jl` and `MLStyle.jl`.
+
+```julia
+include("MQuery/MQuery.jl")
+using Base.Enums
+@enum TypeChecking Dynamic Static
+df = DataFrame(
+        Symbol("Type checking") => [
+            Dynamic, Static, Static, Dynamic, Static, Dynamic, Dynamic, Static
+        ],
+        :name => [
+            "Julia", "C#", "F#", "Ruby", "Java", "JavaScript", "Python", "Haskell"
+        ],
+        :year => [
+            2012, 2000, 2005, 1995, 1995, 1995, 1990, 1990
+        ]
+)
+
+df |>
+@where !startswith(_.name, "Java"),
+@groupby _."Type checking" => TC,
+@having TC === Dynamic,
+@select join(_.name, " and ") => result
+```
+
 ## Linq
 
 Check [Linq.jl](./Linq.jl).
