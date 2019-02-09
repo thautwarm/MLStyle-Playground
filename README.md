@@ -12,7 +12,7 @@ This is similar to `@capture` in MacroTools.jl but much more powerful and effici
 @info @capture f($x) :(f(1))
 # Dict(:x=>1)
 
-destruct_fn = @capture function $fname(a, $(args...)) $(body...) end
+destruct_fn = @capture function $(fname :: Symbol)(a, $(args...)) $(body...) end
 
 @info destruct_fn(:(
     function f(a, x, y, z)
