@@ -3,6 +3,31 @@
 
 Check the implementations of some popular constructs from other languages.
 
+## Statically Capturing
+
+This is similar to `@capture` in MacroTools.jl but much more powerful and efficient. 
+
+```julia
+
+@info @capture f($x) :(f(1))
+# Dict(:x=>1)
+
+destruct_fn = @capture function $fname(a, $(args...)) $(body...) end
+
+@info destruct_fn(:(
+    function f(a, x, y, z)
+        x + y + z
+    end
+))
+
+# Dict{Symbol,Any}(
+#     :args => Any[:x, :y, :z],
+#     :body=> Any[:(#= StaticallyCapturing.jl:93 =#), :(x + y + z)],
+#    :fname=>:f
+# )
+
+```
+
 ## MQuery
 
 The codes of [Write You A Query Language](https://github.com/thautwarm/MLStyle.jl/blob/tutorial-MQuery/docs/src/tutorials/query-lang.md).
