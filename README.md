@@ -72,9 +72,9 @@ Check [Linq.jl](./Linq.jl).
 
 import .Linq: dispatch
 
-dispatch(arr :: Vector{T}, ::Val{:str}) where T = string(arr)
+dispatch(::Val{:str}, arr :: Vector{T}) where T = string(arr)
 
-dispatch(s :: String, ::Val{:println}) where T = println(s)
+dispatch(::Val{:println}, s :: String) where T = println(s)
 
 @linq [1, 2, 3].map(x -> 2x).str.println
 
