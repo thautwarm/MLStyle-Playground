@@ -67,7 +67,7 @@ module Linq
     e.g.
     import Linq: dispatch
 
-    function dispatch(subject::Vector{T}, Val{:expected}) where T
+    function dispatch(Val{:expected}, subject::Vector{T}) where T
         view(subject, 1:2:length(subject))
     end
     
