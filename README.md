@@ -3,6 +3,29 @@
 
 Check the implementations of some popular constructs from other languages.
 
+
+## Syntax Extension Prototype
+
+```julia
+include("allow_patterns.jl")
+@allow_patterns module SyntaxExtended
+     case(1) do
+         2        => error(1)
+         5:10     => error(2)
+         1:4 && a =>
+         case(a + 1) do
+             a => 5a
+         end
+     end |> println
+end
+```
+produces
+```julia
+10
+Main.SyntaxExtended
+```
+
+
 ## Statically Capturing
 
 This is similar to `@capture` in MacroTools.jl but much more powerful and efficient. 
