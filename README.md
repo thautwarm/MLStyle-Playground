@@ -3,21 +3,44 @@
 
 Check the implementations of some popular constructs from other languages.
 
+## Julia IS A Lisp Idiom
+
+```julia
+include("lisp.jl")
+@info @lisp [
+   :block
+   [:function [f x] [(+) x 1]]
+   [f 2]
+]
+```
+produces
+```julia
+[ Info: 3
+```
+
+Also,
+```julia
+julia> @lisp [:(=) [f a b] [(+) 2a b]]
+f (generic function with 1 method)
+
+julia> @lisp [f 1 2]
+4
+```
 
 ## Syntax Extension Prototype
 
 ```julia
 include("allow_patterns.jl")
-@allow_patterns module SyntaxExtended
-     case(1) do
-         2        => error(1)
-         5:10     => error(2)
-         1:4 && a =>
-         case(a + 1) do
-             a => 5a
-         end
-     end |> println
-end
+    @allow_patterns module SyntaxExtended
+        case(1) do
+            2        => error(1)
+            5:10     => error(2)
+            1:4 && a =>
+            case(a + 1) do
+                a => 5a
+            end
+        end |> println
+    end
 ```
 produces
 ```julia
@@ -25,6 +48,13 @@ produces
 Main.SyntaxExtended
 ```
 
+```
+    switch(weekday) {
+        case Monday  : # dosomething
+        case Tuesday : # dosomething
+        ...
+    }
+```
 
 ## Statically Capturing
 
