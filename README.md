@@ -1,9 +1,6 @@
-
 # MLStyle Playground
 
-Check the implementations of some popular constructs from other languages.
-
-## Julia IS A Lisp Idiom
+## Julia Is A Lisp Idiom
 
 ```julia
 include("lisp.jl")
