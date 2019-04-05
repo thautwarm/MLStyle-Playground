@@ -14,6 +14,9 @@ end DbgNamespace
 A.f(1)
 ```
 
+Above codes allow you enter a simple debugger shell when
+an unexpected exception occurred.
+
 ```
 ┌ Info: error
 │   __dbg_err__ =
