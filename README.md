@@ -1,5 +1,58 @@
 # MLStyle Playground
 
+## Simple Debugger
+
+```julia
+include("simple_debugger.jl")
+module DbgNamespace end
+@debug module A
+    function f(x)
+        !x
+    end
+end DbgNamespace
+
+A.f(1)
+```
+
+```
+┌ Info: error
+│   __dbg_err__ =
+│    MethodError: no method matching !(::Int64)
+│    Closest candidates are:
+│      !(!Matched::Missing) at missing.jl:83
+│      !(!Matched::Bool) at bool.jl:35
+└      !(!Matched::Function) at operators.jl:853
+
+locs: traceback locations; scope: current local scope
+> 1
+  1
+> scope
+  Dict{Symbol,Any}(:__dbg_curline__=>:(#= /MLStyle-Playground/run_debugger.jl:4 =#),:__dbg_cursource__=>"function f(x)\nend",:x=>1)
+> locs
+  Any[(:(#= /MLStyle-Playground/run_debugger.jl:5 =#), "!x"), (:(#= /MLStyle-Playground/run_debugger.jl:5 =#), "x")]
+> locs[end]
+  (:(#= /MLStyle-Playground/run_debugger.jl:5 =#), "x")
+> x = 1
+  1
+> x = scope
+  Dict{Symbol,Any}(:__dbg_curline__=>:(#= /MLStyle-Playground/run_debugger.jl:4 =#),:__dbg_cursource__=>"function f(x)\nend",:x=>1)
+> q
+ERROR: LoadError: MethodError: no method matching !(::Int64)
+Closest candidates are:
+  !(!Matched::Missing) at missing.jl:83
+  !(!Matched::Bool) at bool.jl:35
+  !(!Matched::Function) at operators.jl:853
+Stacktrace:
+ [1] f(::Int64) at /MLStyle-Playground/simple_debugger.jl:7
+ [2] top-level scope at none:0
+ [3] include at ./boot.jl:326 [inlined]
+ [4] include_relative(::Module, ::String) at ./loading.jl:1038
+ [5] include(::Module, ::String) at ./sysimg.jl:29
+ [6] exec_options(::Base.JLOptions) at ./client.jl:267
+ [7] _start() at ./client.jl:436
+in expression starting at /MLStyle-Playground/run_debugger.jl:9
+```
+
 ## Julia Is A Lisp Idiom
 
 ```julia
@@ -45,17 +98,9 @@ produces
 Main.SyntaxExtended
 ```
 
-```
-    switch(weekday) {
-        case Monday  : # dosomething
-        case Tuesday : # dosomething
-        ...
-    }
-```
-
 ## Statically Capturing
 
-This is similar to `@capture` in MacroTools.jl but much more powerful and efficient. 
+This is similar to `@capture` in MacroTools.jl but much more powerful and efficient.
 
 ```julia
 
@@ -136,13 +181,11 @@ dispatch(::Val{:println}, s :: String) where T = println(s)
 Check [Cond.jl](./Cond.jl)
 
 ```julia
-
 @cond begin
-    <cond1> => <body1>
-    ...
-    _ => <default body> 
+    x == 1         => :case1
+    x < 2 && x > 3 => :case2
+    _              => :case3
 end
-
 ```
 
 ## ActivePatterns
