@@ -14,7 +14,7 @@ end DbgNamespace
 A.f(1)
 ```
 
-Above codes allow you enter a simple debugger shell when
+Above codes allow you to start a simple debugger shell when
 an unexpected exception occurred.
 
 ```
