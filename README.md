@@ -1,5 +1,41 @@
 # MLStyle Playground
 
+## For-patterns
+
+Story: https://github.com/thautwarm/MLStyle.jl/issues/51
+
+Yet another useful derivative from the idea: **deconstruct data just as how they're constructed**.
+
+```julia
+
+include("for-patterns.jl")
+x = [1, 2, 3]
+
+seq = @match x begin
+    [i for (i, i + 1) in seq] => seq
+end
+
+print(seq)
+# [(1, 2), (2, 3), (3, 4)]
+
+
+
+@active Symbol(x) begin Symbol(x) end
+@active Eval(x) begin eval(Meta.parse(x)) end
+
+
+x = [("x", "2 + 3"), ("y", "3 + 4"), ("z", "4 + 5")]
+
+@match x begin
+    [(Symbol(fst), Eval(snd)) for (fst, snd)
+      in (seq && [(x, 5), _...])] =>  (seq, x)
+end
+
+# ([(:x, 5), (:y, 7), (:z, 9)], :x)
+```
+
+It'll be added into MLStyle master sooner.
+
 ## Simple Debugger
 
 ```julia
@@ -191,7 +227,7 @@ Check [Cond.jl](./Cond.jl)
 end
 ```
 
-## ActivePatterns
+## Active Patterns
 
 Active Patterns can help you with making custom patterns.
 
