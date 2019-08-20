@@ -1,7 +1,15 @@
 # MLStyle Playground
 
 
-## Simple Debugger
+## Simple Debugger in 200 lines
+
+A clean implementation.
+
+Requirements except MLStyle.jl:
+- https://github.com/thautwarm/ReplMaker.jl
+- Crayons.jl
+- PrettyPrinting.jl
+- REPL
 
 ![debugger-nodebug](./sdebugger-nodebug.png)
 ![debugger-debug](./sdebugger-debug.png)
