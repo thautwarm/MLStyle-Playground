@@ -3,7 +3,7 @@
 
 ## Simple Debugger in 200 lines
 
-A clean implementation.
+A clean implementation, check [simple_debugger.jl](https://github.com/thautwarm/MLStyle-Playground/blob/master/simple_debugger.jl).
 
 Requirements except MLStyle.jl:
 - https://github.com/thautwarm/ReplMaker.jl
