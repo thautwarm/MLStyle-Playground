@@ -10,7 +10,7 @@ macro cond(cases)
                 last_lnode = @__LINE__
                 @match case begin
                     ::LineNumberNode => begin
-                        last_lnode = case    
+                        last_lnode = case
                         Expr(:block, case, last)
                     end
                     :(_ => $b) => b

@@ -24,6 +24,7 @@ lisp(expr) =
 
         a => a
     end
+
 macro lisp(expr)
     lisp(expr) |> esc
 end

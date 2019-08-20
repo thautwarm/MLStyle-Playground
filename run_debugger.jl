@@ -1,9 +1,14 @@
 include("simple_debugger.jl")
-module DbgNamespace end
-@debug module A
-    function f(x)
-        !x
+@inject function f(x)
+    @watch! x
+    z = x + 2
+    @watch! z
+    @watch! z+1
+    nested(u) = begin
+        @watch! u
+        u + x
     end
-end DbgNamespace
-
-A.f(1)
+end
+@nodebug!
+nested = f(1)
+nested(1)

@@ -1,113 +1,183 @@
+module simple_debugger
 using MLStyle
+using Crayons
+using PrettyPrinting
+using ReplMaker
+using REPL
 
-function setup_dbg(expr, line)
+export @debug!, @nodebug!, @watch!, @report, @watch_locals!, @inject
+
+DebugScope = Dict{String, Tuple{LineNumberNode, Any}}
+
+mutable struct MetaData
+    current_line :: LineNumberNode
+    to_watch     :: DebugScope
+    committed    :: Vector{DebugScope}
+    debug        :: Bool
+end
+
+const line = LineNumberNode(32, :fake_line)
+const empty_dbg_scope = DebugScope()
+const meta = MetaData(line, empty_dbg_scope, [], false)
+
+Base.show(io::IO, ::MetaData) = print(io, "meta")
+
+
+macro debug!()
+    meta.debug = true
+end
+
+macro nodebug!()
+    meta.debug = false
+end
+
+function commit!(meta)
+    push!(meta.committed, meta.to_watch)
+end
+
+function rollback!(meta)
+    meta.to_watch = pop!(meta.committed)
+end
+
+function watch!(meta, name, var, line)
+    meta.to_watch[name] = (line, var)
+    var
+end
+
+const fake_exps    = Expr[]
+const dbg_scoperef = Ref{Vector{Expr}}(fake_exps)
+
+function parse_expr(s)
+    ex = Meta.parse(s)
+    let_bindings = dbg_scoperef.x
+    :(let $(let_bindings...); $ex end)
+end
+
+const dbg_repl = Base.active_repl
+
+dbg_mode = initrepl(
+    parse_expr,
+    prompt_text="dbg> ",
+    prompt_color = :green,
+    start_key="|",
+    repl = dbg_repl,
+    mode_name="debug_mode"
+)
+
+function report(meta, msg)
+    bold = Crayon(bold=true)
+    style_title = Crayon(foreground=:light_magenta)
+    style_line = Crayon(foreground=:green, italics=true, underline=true)
+    style_var = Crayon(foreground=:light_blue, bold=true)
+    println(args...) = begin
+        Base.print(args...)
+        Base.print(Crayon(reset=true), "\n")
+    end
+    println(style_title, "Debugging ", bold, msg)
+    println(style_line, "[where] ", meta.current_line)
+
+    for (k, (line, v)) in meta.to_watch
+        print(style_var, "  ", k, " ", style_line, bold, "[", line, "]:", Crayon(reset=true))
+        pprint(v)
+        println()
+    end
+    print(style_title, "Open a REPL here and check manually?[Y/N]")
+    option = stdin |> readline |> strip |> lowercase |> Symbol
+    @match option begin
+        :n => ()
+        :y =>
+            begin
+                dbg_scoperef.x = map(meta.to_watch |> collect) do (k, (line, v))
+                    sym = Symbol(k)
+                    :($sym = $v)
+                end
+                println(
+                    style_var,
+                    "Press | and switch to dbg-mode, enter Ctrl+D to leave sub-REPL."
+                )
+                REPL.run_repl(dbg_repl)
+            end
+        _ => throw(error("invalid option $option"))
+    end
+    nothing
+end
+
+function inject_func(msg, expr, meta)
     quote
-        __dbg_curline__ = $(QuoteNode(line))
-        __dbg_cursource__ = $(string(expr))
-        $expr
+        $commit!($meta)
+        $meta.to_watch = $DebugScope()
+        try
+            $(inject(expr, meta))
+        finally
+            if $meta.debug && $(!isempty)($meta.to_watch)
+                $report($meta, $msg)
+            end
+            $rollback!($meta)
+        end
     end
 end
 
-function debug(expr, line, debug_mod)
+is_call(ex) =
+    @match ex begin
+        Expr(:call, _...) => true
+        :($a :: $_)       => is_call(a)
+        :($a where $_)    => is_call(a)
+        _                 => false
+    end
+
+function inject(expr, meta)
+    rec(ex) = inject(ex, meta)
+
     @match expr begin
-        Expr(:function, others..., Expr(:block, elts...)) => begin
-            lastline = line
-            new_elts = map(elts) do each
-                @match each begin
-                    l :: LineNumberNode =>
-                        begin
-                            lastline = l
-                            l
-                        end
-                    a => begin
-                        debug(a, lastline, debug_mod)
-                    end
+        Expr(:(=), func_head, body) && if is_call(func_head) end ||
+        Expr(:function || :(->), func_head, body) =>
+            let body = inject_func(string(func_head), body, meta)
+                Expr(:function, func_head, body)
+            end
+
+        line::LineNumberNode =>
+            Expr(:block, line, :($meta.current_line = $(QuoteNode(line))))
+
+        :(@report $line) =>
+            quote
+                if $meta.debug && $(!isempty)($meta.to_watch)
+                    $report($meta, $msg)
                 end
             end
 
-            body = quote
-                __dbg_curline__ = $(QuoteNode(line))
-                __dbg_cursource__ = $(string(Expr(:function, others..., Expr(:block, ))))
-                __dbg_local__ = $Base.@locals
-                try
-                    $(new_elts...)
-                catch __dbg_err__
-                    $debug_mod.eval(quote
-                        scope = $__dbg_local__
-                    end)
-                    $push!($debug_mod.locs, (__dbg_curline__, __dbg_cursource__))
-                    println()
-                    @info :error __dbg_err__
-                    println()
-                    println("locs: traceback locations; scope: current local scope")
-                    try
-                        while (print("> "); __dbg_sh_input__ = $readline(); $lowercase($strip(__dbg_sh_input__)) != "q")
-                            try
-                                __dbg_ans__ = $debug_mod.eval($Meta.parse(__dbg_sh_input__))
-                                $debug_mod.eval(:(ans = $__dbg_ans__))
-                                __dbg_ans_str__ = "  " * string(__dbg_ans__)
-                                println(__dbg_ans_str__)
-                            catch __dbg_sh_err__
-                                @info :error __dbg_sh_err__
-                            end
-                        end
-                    finally
-                        $pop!($debug_mod.locs)
-                    end
-                    $rethrow(__dbg_err__)
+        :(@watch_locals! $(_...)) =>
+            quote
+                for (k, v) in $Base.@locals
+                    $watch!($meta, $string(k), v, $(QuoteNode(line)))
                 end
             end
 
-            Expr(:function, others..., body)
-        end
-        Expr(:module && head, a, b, elts...) =>
-        let lastline = line,
-            elts = map(elts) do each
-                if each isa LineNumberNode
-                    lastline = each
-                end
-                debug(each, lastline, debug_mod)
+        :(@watch! $line $var) || :(@watch $var) =>
+            let name = string(var)
+                :($watch!($meta, $name, $var, $(QuoteNode(line))))
             end
-            Expr(head, a, b, elts...)
-        end
-        Expr(head, elts...) =>
-            let lastline = line,
-                ex = map(elts) do each
-                    if each isa LineNumberNode
-                        lastline = each
-                    end
-                debug(each, lastline, debug_mod)
-                end |> elts -> Expr(head, elts...)
 
-                head == :call ?
-                let var = gensym()
-                    quote
-                        $push!($debug_mod.locs, ($(QuoteNode(line)), $(string(expr))))
-                        $var = $ex
-                        $pop!($debug_mod.locs)
-                        $var
-                    end
-                end : ex
-            end
-        a => setup_dbg(a, line)
+        Expr(hd, tl...) =>
+            Expr(hd, map(rec, tl)...)
+
+        a => a
     end
 end
 
-
-macro debug(expr, debug_mod)
-    debug_mod = eval(debug_mod)
-    if !isdefined(debug_mod, :locs)
-        debug_mod.eval(:(locs = []))
-    end
-    ex = debug(expr, __source__, debug_mod)
-    esc(ex)
+macro watch!()
+    throw(error("only used as tokens of @inject"))
 end
 
-# module Debugger
-# end
+macro report!()
+    throw(error("only used as tokens of @inject"))
+end
 
-# @debug function f(z)
-#         !z
-# end Debugger
+macro watch_locals!()
+    throw(error("only used as tokens of @inject"))
+end
 
-# f(1)
+macro inject(ex)
+    inject(ex, meta) |> esc
+end
+
+end
