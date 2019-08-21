@@ -9,10 +9,12 @@ flatten_row(expr) =
 lisp(expr) =
     @match expr begin
         :[] => nothing
+
         :[f] => Expr(:call, lisp(f))
 
 
-        Expr(:vcat, args...) => lisp(Expr(:hcat, vcat(map(flatten_row, args)...)...))
+        Expr(:vcat, args...) =>
+            lisp(Expr(:hcat, vcat(map(flatten_row, args)...)...))
 
         :[($(hd::QuoteNode)) ($(args...))] =>
             Expr(hd.value, map(lisp, args)...)
@@ -20,7 +22,8 @@ lisp(expr) =
         :[($hd) ($(args...))] =>
             Expr(:call, hd, map(lisp, args)...)
 
-        Expr(head, args) => Expr(head, map(lisp, args)...)
+        Expr(head, args...) =>
+            Expr(head, map(lisp, args)...)
 
         a => a
     end
